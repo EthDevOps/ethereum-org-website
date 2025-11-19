@@ -15,7 +15,7 @@ env:
 jobs:
   build-and-push:
     runs-on: 
-      - ghr-self-hosted
+      - self-hosted-ghr
       - size-xl-x64
     permissions:
       contents: read
