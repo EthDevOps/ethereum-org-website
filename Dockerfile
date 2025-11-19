@@ -29,7 +29,7 @@ COPY . .
 
 # Set environment variables for build
 ENV NEXT_TELEMETRY_DISABLED=1
-
+RUN apk add git
 # Build the application
 RUN pnpm run build
 
