@@ -29,6 +29,7 @@ const experimental = LIMIT_CPUS
 module.exports = (phase, { defaultConfig }) => {
   let nextConfig = {
     ...defaultConfig,
+    output: 'standalone',
     reactStrictMode: true,
     env: {
       // Context is used to determine the environment for Sentry
