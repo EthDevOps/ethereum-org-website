@@ -92,40 +92,42 @@ const setImagePlaceholders = async (
     : {}
   let isChanged = false
 
-  // Generate placeholder for internal images
-  for (const image of images) {
-    const { src } = image.properties
+  // Generate placeholder for internal images in parallel
+  await Promise.all(
+    images.map(async (image) => {
+      const { src } = image.properties
 
-    // Skip externally hosted images
-    if (src.startsWith("http")) continue
+      // Skip externally hosted images
+      if (src.startsWith("http")) return
 
-    // Load image data from file system as buffer
-    const buffer: Buffer = fs.readFileSync(path.join("public", src))
+      // Load image data from file system as buffer
+      const buffer: Buffer = fs.readFileSync(path.join("public", src))
 
-    // Get hash fingerprint of image data (no security implications; fast algorithm prioritized)
-    const hash = await getHashFromBuffer(buffer, {
-      algorithm: "SHA-1",
-      length: 8,
+      // Get hash fingerprint of image data (no security implications; fast algorithm prioritized)
+      const hash = await getHashFromBuffer(buffer, {
+        algorithm: "SHA-1",
+        length: 8,
+      })
+
+      // Look for cached placeholder data with matching hash
+      const cachedPlaceholder: Placeholder | null =
+        placeholdersCached[src]?.hash === hash ? placeholdersCached[src] : null
+
+      // Get base64 from cached placeholder if available, else generate new placeholder
+      const { base64 } =
+        cachedPlaceholder || (await getPlaiceholder(buffer, { size: 16 }))
+
+      // Assign base64 placeholder data to image node `blurDataURL` property
+      image.properties.blurDataURL = base64
+      image.properties.placeholder = "blur"
+
+      // If cached value was not available, add newly generated placeholder data
+      if (!cachedPlaceholder) {
+        placeholdersCached[src] = { hash, base64 }
+        isChanged = true
+      }
     })
-
-    // Look for cached placeholder data with matching hash
-    const cachedPlaceholder: Placeholder | null =
-      placeholdersCached[src]?.hash === hash ? placeholdersCached[src] : null
-
-    // Get base64 from cached placeholder if available, else generate new placeholder
-    const { base64 } =
-      cachedPlaceholder || (await getPlaiceholder(buffer, { size: 16 }))
-
-    // Assign base64 placeholder data to image node `blurDataURL` property
-    image.properties.blurDataURL = base64
-    image.properties.placeholder = "blur"
-
-    // If cached value was not available, add newly generated placeholder data
-    if (!cachedPlaceholder) {
-      placeholdersCached[src] = { hash, base64 }
-      isChanged = true
-    }
-  }
+  )
 
   // If cache is still empty, delete JSON file and return
   if (Object.keys(placeholdersCached).length === 0) {

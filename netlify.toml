@@ -11,6 +11,11 @@
 
 [build.environment]
   NEXT_FORCE_EDGE_IMAGES="true"
+  # Use all available CPUs for parallel builds (0 = auto-detect)
+  # Set to a specific number (e.g., 8 or 12) if memory issues occur
+  LIMIT_CPUS="0"
+  # Increase Node.js memory for builds (8GB)
+  NODE_OPTIONS="--max-old-space-size=8192"
 
 [[headers]]
   for = "/*"

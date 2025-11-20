@@ -11,19 +11,24 @@ const { withSentryConfig } = require("@sentry/nextjs")
 
 const withNextIntl = createNextIntlPlugin()
 
-const LIMIT_CPUS = Number(process.env.LIMIT_CPUS ?? 2)
+const LIMIT_CPUS = Number(process.env.LIMIT_CPUS ?? 0)
 
 const experimental = LIMIT_CPUS
   ? {
-      // This option could be enabled in the future when flagged as stable, to speed up builds
+      // Rust-based MDX compiler for faster builds
       // (see https://nextjs.org/docs/pages/building-your-application/configuring/mdx#using-the-rust-based-mdx-compiler-experimental)
-      // mdxRs: true,
+      mdxRs: true,
 
-      // Reduce the number of cpus and disable parallel threads in prod envs to consume less memory
-      workerThreads: false,
+      // Enable parallel processing to utilize all available CPUs
+      // Set LIMIT_CPUS env var to limit (e.g., LIMIT_CPUS=8 for 8 cores)
+      workerThreads: true,
       cpus: LIMIT_CPUS,
     }
-  : {}
+  : {
+      // Default: use all CPUs with worker threads enabled
+      mdxRs: true,
+      workerThreads: true,
+    }
 
 /** @type {import('next').NextConfig} */
 module.exports = (phase, { defaultConfig }) => {
@@ -31,6 +36,12 @@ module.exports = (phase, { defaultConfig }) => {
     ...defaultConfig,
     output: 'standalone',
     reactStrictMode: true,
+    // Use SWC for faster minification
+    swcMinify: true,
+    compiler: {
+      // Remove console logs in production for smaller bundle size
+      removeConsole: process.env.NODE_ENV === 'production',
+    },
     env: {
       // Context is used to determine the environment for Sentry
       // ref. https://docs.netlify.com/configure-builds/environment-variables/#build-metadata
